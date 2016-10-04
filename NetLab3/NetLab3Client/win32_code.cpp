@@ -181,7 +181,8 @@ int main(int argc, char** argv){
 	serv.sin_port = htons(2000);
 	serv.sin_addr.s_addr = inet_addr(ipstr);
 
-	for (int i = 0; i < 1000; i++){
+	int messagesSent = 0;
+	for (int i = 0; i < 1000; i++, messagesSent++){
 
 		char outputBuffer[] = "Hello from client";
 		char* outputDestBuffer = (char*)calloc(50, sizeof(char));
@@ -208,21 +209,9 @@ int main(int argc, char** argv){
 			sizeof(serv));
 
 		free(outputDestBuffer);
-
-		char inputBuffer[50];
-		int receivedByteCount = 0;
-
-		int servLen = sizeof(serv);
-		receivedByteCount = recvfrom(
-			clientSock,
-			inputBuffer,
-			sizeof(inputBuffer),
-			0,
-			(sockaddr*)&serv,
-			&servLen);
-
-		cout << inputBuffer << endl;
 	}
+
+	printf("Total messages sent: %d\n", messagesSent);
 
 	closesocket(clientSock);
 	CheckNetError();

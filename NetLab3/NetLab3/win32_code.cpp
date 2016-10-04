@@ -186,7 +186,9 @@ int main(int argc, char** argv){
 	memset(&clnt, 0, sizeof(clnt));
 	int clientLen = sizeof(clnt);
 	
-	for (int i = 0; i < 1000; i++){
+	int i = 0;
+	bool b = true;
+	while (b){
 		char inputBuffer[50];
 		int receivedByteCount = 0;
 		receivedByteCount = recvfrom(
@@ -199,36 +201,7 @@ int main(int argc, char** argv){
 
 		cout << inputBuffer << endl;
 
-		char outputBuffer[] = "Hello from Server";
-		char* outputDestBuffer = (char*)calloc(50, sizeof(char));
-		int sentBytesCount = 0;
-		
-		
-		char numStr[10];
-		_itoa_s(i, numStr, 10);
-		int numStrLen = strlen(numStr);
-
-		//for (int j = 0; j < strlen(outputBuffer); j++){
-		//	outputDestBuffer[j] = outputBuffer[j];
-		//}
-		strcpy(outputDestBuffer, outputBuffer);
-
-
-		for (int j = 0; j < numStrLen; j++){
-			outputDestBuffer[strlen(outputBuffer) + j] = numStr[j];
-		}
-
-		outputDestBuffer[strlen(outputDestBuffer)] = '\0';
-
-		sentBytesCount = sendto(
-			serverSock,
-			outputDestBuffer,
-			strlen(outputDestBuffer) + 1,
-			0,
-			(sockaddr*)&clnt,
-			clientLen);
-
-		free(outputDestBuffer);
+		i = i + 1;
 	}
 
 	closesocket(serverSock);

@@ -91,6 +91,8 @@ bool GetRequestFromClient(char* name, short port, sockaddr* from, int* flen){
 		0,
 		(sockaddr*)&from,
 		flen);
+
+	return true;
 }
 
 bool SendAnswerToClient(

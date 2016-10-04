@@ -1,0 +1,15 @@
+﻿Build started 04.10.2016 8:25:10.
+     1>Project "E:\Univer\Shiman\Labs\NetLab3\NetLab3Client\NetLab3Client.vcxproj" on node 3 (Build target(s)).
+     1>C:\Program Files (x86)\MSBuild\Microsoft.Cpp\v4.0\V120\Microsoft.CppBuild.targets(363,5): warning MSB8004: Intermediate Directory does not end with a trailing slash.  This build instance will add the slash as it is required to allow proper evaluation of the Intermediate Directory.
+     1>C:\Program Files (x86)\MSBuild\Microsoft.Cpp\v4.0\V120\Microsoft.CppBuild.targets(364,5): warning MSB8004: Output Directory does not end with a trailing slash.  This build instance will add the slash as it is required to allow proper evaluation of the Output Directory.
+     1>C:\Program Files (x86)\MSBuild\Microsoft.Cpp\v4.0\V120\Microsoft.CppBuild.targets(388,5): warning MSB8028: The intermediate directory (..\Build2\) contains files shared from another project (NetLab3.vcxproj).  This can lead to incorrect clean and rebuild behavior.
+     1>ClCompile:
+         C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\bin\CL.exe /c /ZI /nologo /W3 /WX- /Od /Oy- /D WIN32 /D _DEBUG /D _CONSOLE /D _LIB /D _USING_V110_SDK71_ /D _UNICODE /D UNICODE /Gm /EHsc /RTC1 /MTd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Fo"..\Build2\\" /Fd"..\Build2\vc120.pdb" /Gd /TP /analyze- /errorReport:prompt win32_code.cpp
+     1>cl : Command line warning D9028: minimal rebuild failure, reverting to normal build
+         win32_code.cpp
+     1>e:\univer\shiman\labs\netlab3\netlab3client\win32_code.cpp : fatal error C1041: cannot open program database 'e:\univer\shiman\labs\netlab3\build2\vc120.pdb'; if multiple CL.EXE write to the same .PDB file, please use /FS
+     1>Done Building Project "E:\Univer\Shiman\Labs\NetLab3\NetLab3Client\NetLab3Client.vcxproj" (Build target(s)) -- FAILED.
+
+Build FAILED.
+
+Time Elapsed 00:00:00.20
