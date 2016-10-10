@@ -1,61 +1,30 @@
+
 #include <iostream>
+using namespace std;
+
 #include <WinSock2.h>
 #include <Windows.h>
 
-void CheckNetError();
+static void CheckNetError();
 
+void GetServerBySymbolicName(
+	SOCKET Socket,
+	char* SymbolicName,
+	char* Name,
+	sockaddr* All,
+	int AllLen)
+{
 
-void PrintInfo(sockaddr_in* info){
-	printf("SERVER IP: %s. SERVER PORT: %d.\n", inet_ntoa(info->sin_addr), info->sin_port);
 }
 
-
-//Client
 int main(int argc, char** argv){
 
-	WSADATA wsaData;
-	WSAStartup(MAKEWORD(2, 0), &wsaData);
-	CheckNetError();
 
-	SOCKET clientSock = socket(AF_INET, SOCK_DGRAM, 0);
-	CheckNetError();
-
-	int optval = 1;
-	setsockopt(clientSock, SOL_SOCKET, SO_BROADCAST, (char*)&optval, sizeof(int));
-	CheckNetError();
-
-	SOCKADDR_IN all;
-	all.sin_family = AF_INET;
-	all.sin_port = htons(2000);
-	all.sin_addr.s_addr = INADDR_BROADCAST;
-
-	char outputBuffer[] = "Hello from Client";
-
-	int sendLen = sendto(
-		clientSock,
-		outputBuffer,
-		sizeof(outputBuffer),
-		0,
-		(sockaddr*)&all, sizeof(all));
-	PrintInfo(&all);
-	CheckNetError();
-
-	int allLen = sizeof(all);
-	char inputBuffer[50];
-	int receivedBytesCount = recvfrom(
-		clientSock,
-		inputBuffer,
-		sizeof(inputBuffer),
-		0, (sockaddr*)&all, &allLen);
-
-	printf("%s\n", inputBuffer);
-
-	WSACleanup();
-	CheckNetError();
 
 	system("pause");
-	return 0;
+	return(0);
 }
+
 
 void CheckNetError(){
 	int errCode = WSAGetLastError();
