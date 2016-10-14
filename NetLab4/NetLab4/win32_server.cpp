@@ -10,6 +10,67 @@ void PrintInfo(sockaddr_in* info){
 	printf("IP: %s. PORT: %d.\n", inet_ntoa(info->sin_addr), info->sin_port);
 }
 
+bool CheckForAnotherServerWithName(char* ServerName){
+	bool Result = false;
+
+	SOCKET AnotherSocket = socket(AF_INET, SOCK_DGRAM, NULL);
+	CheckNetError();
+
+	int optval = 1;
+	int TimeOut = 1000;
+	setsockopt(AnotherSocket, SOL_SOCKET, SO_BROADCAST, (char*)&optval, sizeof(int));
+	setsockopt(AnotherSocket, SOL_SOCKET, SO_RCVTIMEO, (char*)&TimeOut, sizeof(TimeOut));
+	CheckNetError();
+
+	SOCKADDR_IN All = {};
+	All.sin_family = AF_INET;
+	All.sin_port = htons(2000);
+	All.sin_addr.s_addr = INADDR_BROADCAST;
+
+	int BytesSent = sendto(
+		AnotherSocket,
+		ServerName,
+		strlen(ServerName) + 1,
+		0,
+		(sockaddr*)&All,
+		sizeof(All));
+
+	if (BytesSent > 0){
+
+		char RequestedServerName[50];
+
+		int AllLen = sizeof(All);
+
+		int receivedByteCount = recvfrom(
+			AnotherSocket,
+			RequestedServerName,
+			sizeof(RequestedServerName),
+			0,
+			(sockaddr*)&All,
+			&AllLen);
+		if (receivedByteCount > 0){
+			int StringsAreEqual = strcmp(ServerName, RequestedServerName);
+
+			if (StringsAreEqual == 0){
+				cout << "Computer with this name alredy exists!!!!!!!!!!!!!!!!!!\n";
+				Result = true;
+			}
+			else{
+				CheckNetError();
+			}
+		}
+		else{
+			cout << "No servers in network.\n";
+			CheckNetError();
+		}
+	}
+
+	closesocket(AnotherSocket);
+	CheckNetError();
+
+	return Result;
+}
+
 bool GetRequestFromClient(
 	SOCKET ServerSocket,
 	char* ServerName,
@@ -67,6 +128,8 @@ int main(int argc, char** argv){
 	CheckNetError();
 
 	char ServerName[] = "Hello";
+
+	CheckForAnotherServerWithName(ServerName);
 
 	SOCKET ServerSocket = socket(AF_INET, SOCK_DGRAM, NULL);
 	CheckNetError();

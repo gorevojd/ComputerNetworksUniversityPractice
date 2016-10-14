@@ -4,80 +4,6 @@ using namespace std;
 #include <WinSock2.h>
 #include <Windows.h>
 
-static void CheckNetError();
-
-void PrintInfo(sockaddr_in* info){
-	printf("SERVER IP: %s. SERVER PORT: %d.\n", inet_ntoa(info->sin_addr), info->sin_port);
-}
-
-void DetectComputerHostName(void){
-	char Name[256];
-	if (gethostname(Name, sizeof(Name)) >= 0){
-		printf("This computer (NetBIOS / DNS) name: %s\n", Name);
-	}
-	else{
-		CheckNetError();
-	}
-}
-
-bool SendBroadCastMessageToFindServer(
-	SOCKET Socket,
-	char* ServerName,
-	short Port,
-	sockaddr* All,
-	int AllLen)
-{
-	bool Result = false;
-
-	((SOCKADDR_IN*)All)->sin_family = AF_INET;
-	((SOCKADDR_IN*)All)->sin_port = htons(Port);
-	((SOCKADDR_IN*)All)->sin_addr.s_addr = INADDR_BROADCAST;
-
-	int BytesSent = sendto(
-		Socket,
-		ServerName,
-		strlen(ServerName) + 1,
-		0,
-		All,
-		AllLen);
-
-	if (BytesSent > 0){
-		Result = true;
-	}
-
-	return(Result);
-}
-
-
-int main(int argc, char** argv){
-
-	WSADATA wsaData;
-	WSAStartup(MAKEWORD(2, 0), &wsaData);
-	CheckNetError();
-
-	SOCKET clientSock = socket(AF_INET, SOCK_DGRAM, 0);
-	CheckNetError();
-
-	int optval = 1;
-	setsockopt(clientSock, SOL_SOCKET, SO_BROADCAST, (char*)&optval, sizeof(int));
-	CheckNetError();
-
-	printf("Enter computer symbolyc name...\n");
-	char HostName[50];
-	cin >> HostName;
-
-	//hostent* ServerEnt = gethostbyname(HostName);
-	DetectComputerHostName();
-
-	WSACleanup();
-	CheckNetError();
-
-
-	system("pause");
-	return(0);
-}
-
-
 void CheckNetError(){
 	int errCode = WSAGetLastError();
 	switch (errCode){
@@ -234,3 +160,120 @@ void CheckNetError(){
 	}
 	OutputDebugStringA("\n");
 }
+void PrintInfo(sockaddr_in* info){
+	printf("SERVER IP: %s. SERVER PORT: %d.\n", inet_ntoa(info->sin_addr), info->sin_port);
+}
+
+void DetectComputerHostName(void){
+	char Name[256];
+	if (gethostname(Name, sizeof(Name)) >= 0){
+		printf("This computer (NetBIOS / DNS) name: %s\n", Name);
+	}
+	else{
+		CheckNetError();
+	}
+}
+
+bool SendBroadCastMessageToFindServer(
+	SOCKET Socket,
+	char* ServerName,
+	short Port,
+	sockaddr* All,
+	int AllLen)
+{
+	bool Result = false;
+
+
+	((SOCKADDR_IN*)All)->sin_family = AF_INET;
+	((SOCKADDR_IN*)All)->sin_port = htons(Port);
+	((SOCKADDR_IN*)All)->sin_addr.s_addr = INADDR_BROADCAST;
+
+	int BytesSent = sendto(
+		Socket,
+		ServerName,
+		strlen(ServerName) + 1,
+		0,
+		All,
+		AllLen);
+
+	if (BytesSent > 0){
+		Result = true;
+	}
+
+	return(Result);
+}
+
+void GetServerBySymbolicName(
+	SOCKET Socket,
+	char* SymbolicName,
+	char* Name,
+	sockaddr* All,
+	int AllLen)
+{
+	hostent* HostEntity = gethostbyname(SymbolicName);
+	for (int i = 0; HostEntity->h_addr_list[i] != 0; i++){
+		printf("Host ip: %s\n", HostEntity->h_addr_list[i]);
+	}
+
+	unsigned short WantedPort = 2000;
+	SendBroadCastMessageToFindServer(
+		Socket,
+		Name,
+		WantedPort,
+		All,
+		sizeof(*All));
+
+	int AllLen2 = sizeof(*All);
+	char InputBuffer[256];
+	int ReceivedBytesCount = recvfrom(
+		Socket,
+		InputBuffer,
+		sizeof(InputBuffer),
+		0,
+		All,
+		&AllLen2);
+}
+
+
+int main(int argc, char** argv){
+
+	WSADATA wsaData;
+	WSAStartup(MAKEWORD(2, 0), &wsaData);
+	CheckNetError();
+
+	SOCKET clientSock = socket(AF_INET, SOCK_DGRAM, 0);
+	CheckNetError();
+
+	int optval = 1;
+	setsockopt(clientSock, SOL_SOCKET, SO_BROADCAST, (char*)&optval, sizeof(int));
+	CheckNetError();
+
+	char* WantedServerName = "Hello";
+	unsigned short WantedPort = 2000;
+
+
+	printf("Enter computer symbolyc name...\n");
+	char HostName[50];
+	cin >> HostName;
+
+	DetectComputerHostName();
+
+	SOCKADDR_IN All = {};
+	GetServerBySymbolicName(
+		clientSock,
+		HostName,
+		WantedServerName,
+		(sockaddr*)&All,
+		sizeof(All));
+	
+
+
+	WSACleanup();
+	CheckNetError();
+
+
+	system("pause");
+	return(0);
+}
+
+
