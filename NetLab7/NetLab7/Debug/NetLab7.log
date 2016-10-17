@@ -1,0 +1,13 @@
+﻿Build started 17.10.2016 20:52:44.
+     1>Project "E:\Univer\Shiman\Labs\NetLab7\NetLab7\NetLab7.vcxproj" on node 2 (Build target(s)).
+     1>ClCompile:
+         C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\bin\CL.exe /c /ZI /nologo /W3 /WX- /Od /Oy- /D WIN32 /D _DEBUG /D _CONSOLE /D _LIB /D _USING_V110_SDK71_ /D _UNICODE /D UNICODE /Gm /EHsc /RTC1 /MTd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Fo"Debug\\" /Fd"Debug\vc120.pdb" /Gd /TP /analyze- /errorReport:prompt Server.cpp
+         Server.cpp
+       Link:
+         C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\bin\link.exe /ERRORREPORT:PROMPT /OUT:"E:\Univer\Shiman\Labs\NetLab7\Debug\NetLab7.exe" /INCREMENTAL /NOLOGO kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /NODEFAULTLIB:LIBCMT /NODEFAULTLIB:MSVCRTD /MANIFEST /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /manifest:embed /DEBUG /PDB:"E:\Univer\Shiman\Labs\NetLab7\Debug\NetLab7.pdb" /SUBSYSTEM:CONSOLE,"5.01" /TLBID:1 /DYNAMICBASE /NXCOMPAT /IMPLIB:"E:\Univer\Shiman\Labs\NetLab7\Debug\NetLab7.lib" /MACHINE:X86 Debug\Server.obj
+         NetLab7.vcxproj -> E:\Univer\Shiman\Labs\NetLab7\Debug\NetLab7.exe
+     1>Done Building Project "E:\Univer\Shiman\Labs\NetLab7\NetLab7\NetLab7.vcxproj" (Build target(s)).
+
+Build succeeded.
+
+Time Elapsed 00:00:01.32
