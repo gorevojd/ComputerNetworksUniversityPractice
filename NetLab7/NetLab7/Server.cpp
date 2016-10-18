@@ -29,7 +29,6 @@ int main(int argc, char** argv){
 
 	VirtualFree(InputBuffer, 0, MEM_RELEASE);
 #else
-	DWORD BeginClock = clock();
 	int NumberOfMessagesToSend = NUMBER_OF_MESSAGES_TO_SEND;
 	for (int i = 0; i < NumberOfMessagesToSend; i++){
 		DWORD BytesRead;
@@ -42,15 +41,14 @@ int main(int argc, char** argv){
 			&BytesRead,
 			0);
 
-		printf("%s\n", InputBuffer);
+		printf("Read %d bytes from message.\n", BytesRead);
+		printf("%i Message read.\n", i);
+
 
 		VirtualFree(InputBuffer, 0, MEM_RELEASE);
 	}
-	DWORD EndClock = clock();
-	DWORD CyclesElapsed = EndClock - BeginClock;
-	real32 SecondsElapsed = (real32)CyclesElapsed / CLOCKS_PER_SEC;
 
-	printf("%d messages sent in %0.4f seconds.\n", NumberOfMessagesToSend, SecondsElapsed);
+
 #endif
 
 	CloseHandle(MailslotHandle);
