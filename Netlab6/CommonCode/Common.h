@@ -1,8 +1,6 @@
 #ifndef COMMON_CODE_H
 
 #define DO_LAB_IN_LOOP 0
-#define THROUGH_READ_AND_WRITE 0
-#define WITH_SLEEPING 0
 #define MESSAGE_SIZE 256
 
 #include <Windows.h>

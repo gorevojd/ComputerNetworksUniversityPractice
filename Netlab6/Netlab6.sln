@@ -7,6 +7,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Netlab6", "Netlab6\Netlab6.
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "NetLab6Client", "NetLab6Client\NetLab6Client.vcxproj", "{56A47352-2B2B-443C-A3AC-C25C63A6C13E}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "NetLab6CallNamedPipe", "NetLab6CallNamedPipe\NetLab6CallNamedPipe.vcxproj", "{FF7F9220-AD64-4A1F-B057-5E4391A81DAE}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
@@ -21,6 +23,10 @@ Global
 		{56A47352-2B2B-443C-A3AC-C25C63A6C13E}.Debug|Win32.Build.0 = Debug|Win32
 		{56A47352-2B2B-443C-A3AC-C25C63A6C13E}.Release|Win32.ActiveCfg = Release|Win32
 		{56A47352-2B2B-443C-A3AC-C25C63A6C13E}.Release|Win32.Build.0 = Release|Win32
+		{FF7F9220-AD64-4A1F-B057-5E4391A81DAE}.Debug|Win32.ActiveCfg = Debug|Win32
+		{FF7F9220-AD64-4A1F-B057-5E4391A81DAE}.Debug|Win32.Build.0 = Debug|Win32
+		{FF7F9220-AD64-4A1F-B057-5E4391A81DAE}.Release|Win32.ActiveCfg = Release|Win32
+		{FF7F9220-AD64-4A1F-B057-5E4391A81DAE}.Release|Win32.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
