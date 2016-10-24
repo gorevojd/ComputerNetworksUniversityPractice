@@ -84,6 +84,9 @@
   <ItemGroup>
     <ClCompile Include="win32_server.cpp" />
   </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\CommonCode\common_code.h" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

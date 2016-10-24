@@ -13,23 +13,7 @@ int main(int argc, char** argv){
 	cin >> CompName;
 
 	char* NamedPipeName = (char*)calloc(256, sizeof(char));
-	//int StrPos = 0;
-	//for (int i = 0; i < 2; i++){
-	//	NamedPipeName[i] = '\\';
-	//}
-	//StrPos = 2;
 
-	//for (int i = 0; i < strlen(CompName); i++){
-	//	NamedPipeName[i + StrPos] = CompName[i];
-	//	StrPos++;
-	//}
-
-	//char EndOfName[] = "\\pipe\\NP_NAME";
-	//for (int i = 0; i < strlen(EndOfName); i++){
-	//	NamedPipeName[i + StrPos] = EndOfName[i];
-	//	StrPos++;
-	//}
-	//NamedPipeName[StrPos] = 0;
 	sprintf(NamedPipeName, "\\\\%s\\pipe\\NP_NAME", CompName);
 
 #else

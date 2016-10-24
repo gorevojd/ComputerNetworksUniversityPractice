@@ -1,5 +1,5 @@
-﻿Build started 18.10.2016 9:28:26.
-     1>Project "E:\Univer\Shiman\Labs\Netlab6\NetLab6Client\NetLab6Client.vcxproj" on node 3 (Build target(s)).
+﻿Build started 18.10.2016 13:32:09.
+     1>Project "E:\Univer\Shiman\Labs\Netlab6\NetLab6Client\NetLab6Client.vcxproj" on node 2 (Build target(s)).
      1>ClCompile:
          C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\bin\CL.exe /c /ZI /nologo /W3 /WX- /Od /Oy- /D WIN32 /D _DEBUG /D _CONSOLE /D _LIB /D _USING_V110_SDK71_ /D _UNICODE /D UNICODE /Gm /EHsc /RTC1 /MTd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Fo"Debug\\" /Fd"Debug\vc120.pdb" /Gd /TP /analyze- /errorReport:prompt Client.cpp
          Client.cpp
@@ -8,6 +8,10 @@
      1>e:\univer\shiman\labs\netlab6\commoncode\common.h(43): warning C4244: '=' : conversion from 'LONGLONG' to 'int', possible loss of data
      1>e:\univer\shiman\labs\netlab6\commoncode\common.h(44): warning C4244: 'argument' : conversion from 'LONGLONG' to 'SIZE_T', possible loss of data
      1>e:\univer\shiman\labs\netlab6\commoncode\common.h(47): warning C4244: 'argument' : conversion from 'LONGLONG' to 'DWORD', possible loss of data
+     1>e:\univer\shiman\labs\netlab6\netlab6client\client.cpp(22): warning C4018: '<' : signed/unsigned mismatch
+     1>e:\univer\shiman\labs\netlab6\netlab6client\client.cpp(27): warning C4129: 'p' : unrecognized character escape sequence
+     1>e:\univer\shiman\labs\netlab6\netlab6client\client.cpp(27): warning C4129: 'N' : unrecognized character escape sequence
+     1>e:\univer\shiman\labs\netlab6\netlab6client\client.cpp(28): warning C4018: '<' : signed/unsigned mismatch
      1>e:\univer\shiman\labs\netlab6\netlab6client\client.cpp(33): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
                  c:\program files (x86)\microsoft visual studio 12.0\vc\include\stdio.h(356) : see declaration of 'sprintf'
        Link:
@@ -17,4 +21,4 @@
 
 Build succeeded.
 
-Time Elapsed 00:00:01.18
+Time Elapsed 00:00:01.03
