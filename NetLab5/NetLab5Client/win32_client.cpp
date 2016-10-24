@@ -59,14 +59,15 @@ int main(int argc, char** argv){
 		(sockaddr*)&Wtfs,
 		sizeof(Wtfs));
 
-	int WtfsLen = sizeof(WtfsLen);
+	SOCKADDR_IN Tmp;
+	int WtfsLen = sizeof(Wtfs);
 	char InputBuffer[256];
 	int ReceivedBytesCount = recvfrom(
 		ClientSocket,
 		InputBuffer,
 		sizeof(InputBuffer),
 		0, (sockaddr*)&Wtfs, &WtfsLen);
-
+	CheckNetError();
 	printf("%s\n", InputBuffer);
 
 	WSACleanup();

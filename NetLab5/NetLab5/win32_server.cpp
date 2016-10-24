@@ -175,6 +175,7 @@ int main(int argc, char** argv){
 					continue;
 				}
 			
+				printf("%s\n", ClientMessage);
 				char OutputBuffer[] = "Hello from Server.\n";
 				SendRequestToClient(
 					ServerSocket,
