@@ -18,6 +18,8 @@ bool GetServerByName(
 	hostent* HostEntity = gethostbyname(ServerName);
 	
 	((SOCKADDR_IN*)Wtf)->sin_family = AF_INET;
+	char* Temp2 = inet_ntoa(*((in_addr*)HostEntity->h_addr_list[0]));
+	unsigned long Temp1 = inet_addr(Temp2);
 	((SOCKADDR_IN*)Wtf)->sin_addr.s_addr = inet_addr(inet_ntoa(*((in_addr*)HostEntity->h_addr_list[0])));
 	((SOCKADDR_IN*)Wtf)->sin_port = htons(2000);
 

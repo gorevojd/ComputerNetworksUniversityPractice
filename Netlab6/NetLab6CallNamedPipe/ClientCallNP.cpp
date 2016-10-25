@@ -28,21 +28,7 @@ int main(int argc, char** argv){
 	printf("%s\n", InputBuffer);
 	free(InputBuffer);
 #else
-	for(int i = 0; i < 100; i++){
-		char* DestWriteBuffer = (char*)calloc(MESSAGE_SIZE, sizeof(char));
-		sprintf(DestWriteBuffer, "Hello from Client. Message - %d.\n", i);
 
-		char* InputBuffer = (char*)calloc(256, sizeof(char));
-		DWORD BytesRead;
-#if 1
-		CallNamedPipeA(NamedPipeName, DestWriteBuffer, strlen(DestWriteBuffer) + 1, InputBuffer, MESSAGE_SIZE, &BytesRead, NMPWAIT_WAIT_FOREVER);
-#else
-		CallNamedPipeA(NamedPipeName, InputBuffer, MESSAGE_SIZE, DestWriteBuffer, strlen(DestWriteBuffer) + 1, &BytesRead, NMPWAIT_WAIT_FOREVER);
-#endif
-		printf("%s\n", InputBuffer);
-		free(InputBuffer);
-		free(DestWriteBuffer);
-	}
 #endif
 
 	system("pause");

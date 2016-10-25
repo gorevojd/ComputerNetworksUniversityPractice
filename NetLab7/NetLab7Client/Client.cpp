@@ -16,24 +16,8 @@ int main(int argc, char** argv){
 	 cin >> CompName;
 
 	 char* MailSlotName = (char*)calloc(256, sizeof(char));
-	// int StrPos = 0;
-	// for (int i = 0; i < 4; i++){
-	// 	MailSlotName[i] = '\\';
-	// }
-	// StrPos = 4;
 
-	// for (int i = 0; i < strlen(CompName); i++){
-	// 	MailSlotName[i + StrPos] = CompName[i];
-	// 	StrPos++;
-	// }
-
-	// char EndOfName[] = "\\mailslot\\MS_NAME";
-	// for (int i = 0; i < strlen(EndOfName); i++){
-	// 	MailSlotName[i + StrPos] = EndOfName[i];
-	// }
-	// MailSlotName[StrPos] = 0;
-
-	sprintf(MailSlotName, "\\\\%s\\mailslot\\MS_NAME", CompName);
+	 sprintf(MailSlotName, "\\\\%s\\mailslot\\MS_NAME", CompName);
 
 #else
 	char MailSlotName[] = "\\\\.\\mailslot\\MS_NAME";

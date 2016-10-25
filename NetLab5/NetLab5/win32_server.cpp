@@ -14,9 +14,8 @@ char* GetThisComputerHostHame(){
 
 char* GetConnectedClientsName(sockaddr* Wtf){
 	char* AddrStr = inet_ntoa(((SOCKADDR_IN*)Wtf)->sin_addr);
-	//hostent* HostEntity = gethostbyaddr(AddrStr, strlen(AddrStr), AF_INET);
 	in_addr ipv4addr;
-	inet_pton(AF_INET, AddrStr, &ipv4addr);
+	ipv4addr.s_addr = inet_addr(AddrStr);
 	hostent* HostEntity = gethostbyaddr((char*)&ipv4addr, sizeof(ipv4addr), AF_INET);
 	char* Result = (char*)malloc(sizeof(char) * (strlen(HostEntity->h_name) + 1));
 	strcpy(Result, HostEntity->h_name);
