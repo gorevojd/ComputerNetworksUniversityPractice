@@ -11,7 +11,6 @@ int main(int argc, char** argv){
 	WSAStartup(MAKEWORD(2, 0), &WsaData);
 
 
-
 	WSACleanup();
 
 	system("pause");

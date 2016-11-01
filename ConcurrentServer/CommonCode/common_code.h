@@ -6,6 +6,22 @@
 
 #include <list>
 
+#define MESSAGE_SIZE 256
+
+
+enum talkers_command{
+	TC_DONOTHING = 0,
+	TC_START, /*Allow client connection*/
+	TC_STOP, /*Disallow client connection*/
+	TC_EXIT, /*Exit server program*/
+	TC_STAT, /*Statistics: number of connections,
+		  active connections,
+		  number of dissmissed connections*/
+	TC_WAIT, /**/
+	TC_SHUTDOWN,
+	TC_GETCOMMAND
+};
+
 enum waiting_thread_state{
 	EMPTY,
 	ACCEPT,
@@ -28,11 +44,11 @@ struct contact{
 	HANDLE ThreadHandle;
 	HANDLE TimerHandle;
 
-	char Message[50];
+	char Message[MESSAGE_SIZE];
 	char ServerName[15];
 };
 
-typedef  list<contact> list_contact;
+typedef std::list<contact> list_contact;
 
 inline contact CreateContact(waiting_thread_state State, const char* ServerName = ""){
 	contact Result = {};
