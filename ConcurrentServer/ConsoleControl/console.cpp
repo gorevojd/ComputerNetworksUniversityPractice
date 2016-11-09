@@ -48,6 +48,9 @@ int main(int argc, char** argv){
 			char* UserCommand = (char*)malloc(256 * sizeof(char));
 			printf("Enter command: ");
 			scanf("%s", UserCommand);
+			for (int i = 0; i < strlen(UserCommand); i++){
+				UserCommand[i] = (char)toupper(UserCommand[i]);
+			}
 
 			DWORD BytesWritten;
 			BOOL WriteResult = WriteFile(ClientHandle, UserCommand, strlen(UserCommand) + 1, &BytesWritten, 0);

@@ -3,11 +3,21 @@
 
 #include <WinSock2.h>
 #include <Windows.h>
-
 #include <list>
 
 #define MESSAGE_SIZE 256
 
+struct table_entry{
+	char Id[20];
+	DWORD((WINAPI* Function))(LPVOID);
+};
+
+#define BEGIN_TABLESERVICE table_entry TableService[] = {
+#define ENTRY_SERVICE(s, t) {s, t}
+#define END_TABLESERVICE };
+#define TABLESERVICE_ID(i) TableService[i].Id
+#define TABLESERVICE_FN(i) TableService[i].Function
+#define TableArrayCount (sizeof(TableService) / sizeof(TableService[0]))
 
 enum talkers_command{
 	TC_DONOTHING = 0,
@@ -23,15 +33,16 @@ enum talkers_command{
 };
 
 enum waiting_thread_state{
-	EMPTY,
-	ACCEPT,
-	CONTACT
+	WAIT_TS_EMPTY,
+	WAIT_TS_ACCEPT,
+	WAIT_TS_CONTACT
 };
 enum working_thread_state{
-	WORK,
-	ABORT,
-	TIMEOUT,
-	FINISH
+	WORK_TS_DEFAULT = 0,
+	WORK_TS_WORK,
+	WORK_TS_ABORT,
+	WORK_TS_TIMEOUT,
+	WORK_TS_FINISH
 };
 
 struct contact{

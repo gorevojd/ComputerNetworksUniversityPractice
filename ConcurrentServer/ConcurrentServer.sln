@@ -9,6 +9,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ConcurrentClient", "Concurr
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ConsoleControl", "ConsoleControl\ConsoleControl.vcxproj", "{0F8DA142-854A-49A7-8801-AE9B93F7FB70}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SSS", "SSS\SSS.vcxproj", "{45D31482-E840-4ECB-B557-6BB665B39168}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
@@ -27,6 +29,10 @@ Global
 		{0F8DA142-854A-49A7-8801-AE9B93F7FB70}.Debug|Win32.Build.0 = Debug|Win32
 		{0F8DA142-854A-49A7-8801-AE9B93F7FB70}.Release|Win32.ActiveCfg = Release|Win32
 		{0F8DA142-854A-49A7-8801-AE9B93F7FB70}.Release|Win32.Build.0 = Release|Win32
+		{45D31482-E840-4ECB-B557-6BB665B39168}.Debug|Win32.ActiveCfg = Debug|Win32
+		{45D31482-E840-4ECB-B557-6BB665B39168}.Debug|Win32.Build.0 = Debug|Win32
+		{45D31482-E840-4ECB-B557-6BB665B39168}.Release|Win32.ActiveCfg = Release|Win32
+		{45D31482-E840-4ECB-B557-6BB665B39168}.Release|Win32.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
