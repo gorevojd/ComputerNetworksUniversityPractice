@@ -16,6 +16,11 @@ EXPORT SSS_PROT(SSS){
 	if (i < TableArrayCount){
 		Res = CreateThread(0, 0, TABLESERVICE_FN(i), Param, 0, 0);
 	}
+	if (i == TableArrayCount){
+		printf("ERROR: Not found requested function....");
+		closesocket(((contact*)Param)->Sock);
+	}
+	
 	return(Res);
 }
 

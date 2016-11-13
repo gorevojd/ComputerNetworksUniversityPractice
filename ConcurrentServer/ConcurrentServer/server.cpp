@@ -14,9 +14,43 @@ static CRITICAL_SECTION OurCriticalSection;
 static bool GlobalRunning = true;
 static bool GlobalListeningClients;
 static int GlobalPortNumber;
+static int GlobalListSize;
 static SOCKET GlobalServerSock;
+static HMODULE OurLib;
 
-static list_contact Contacts;
+HANDLE AcceptServerHandle;
+HANDLE ConsolePipeHandle;
+HANDLE GarbageCleanerHandle;
+HANDLE DispatchServerHandle;
+
+static list<contact> Contacts;
+
+VOID CALLBACK ASWTimer(
+	LPVOID lpArgToCompletionRoutine,
+	DWORD  dwTimerLowValue,
+	DWORD  dwTimerHighValue)
+{
+	printf("AP TIMEOUT\n");
+	PrintTime();
+
+	contact* Cont = (contact*)lpArgToCompletionRoutine;
+	EnterCriticalSection(&OurCriticalSection);
+	Cont->WorkingState = WORK_TS_TIMEOUT;
+	closesocket(Cont->Sock);
+	LeaveCriticalSection(&OurCriticalSection);
+}
+
+VOID CALLBACK EchoStartAP(ULONG_PTR Param){	
+	printf("AP START\n");
+	PrintTime();
+}
+
+VOID CALLBACK EchoFinishAP(ULONG_PTR Param){
+	printf("AP FINISH\n");
+	PrintTime();
+	
+	CancelWaitableTimer(((contact*)Param)->TimerHandle);
+}
 
 DWORD WINAPI AcceptServer(LPVOID Param){
 	DWORD Result = 0;
@@ -86,49 +120,45 @@ DWORD WINAPI AcceptServer(LPVOID Param){
 			}
 		}
 		
-		contact Cont = CreateContact(WAIT_TS_ACCEPT, "Hello");
-		bool ClientIsConnected = false;
-		int TmpCopy = NumberOfTries;
-		while (TmpCopy > 0 && ClientIsConnected == false){
+		if (*Command != TC_EXIT && NumberOfTries > 0){
+			contact Cont = CreateContact(WAIT_TS_ACCEPT, "Hello");
+			Cont.AccServHandle = AcceptServerHandle;
+			Cont.DispServHandle = DispatchServerHandle;
+			bool ClientIsConnected = false; 
+			int Tmp = NumberOfTries;
+			while (Tmp > 0 && ClientIsConnected == false){
 
-			if ((Cont.Sock = accept(GlobalServerSock, (sockaddr*)&Cont.SockAddr, &Cont.SockAddrLen)) == INVALID_SOCKET){
-				if (WSAGetLastError() == WSAEWOULDBLOCK){
+				Cont.Sock = accept(GlobalServerSock, (sockaddr*)&Cont.SockAddr, &Cont.SockAddrLen);
+				if (Cont.Sock == INVALID_SOCKET){
+					if (WSAGetLastError() == WSAEWOULDBLOCK){
+						//CheckNetError();
+					}
+					closesocket(Cont.Sock);
 					//CheckNetError();
 				}
-			}
-			else{
-				ClientIsConnected = true;
+				else{
+					ClientIsConnected = true;
+					
+					int BytesReceived = recv(Cont.Sock, Cont.Message, MESSAGE_SIZE, 0);
+					CheckNetError();
+
+					EnterCriticalSection(&OurCriticalSection);
+					Contacts.push_front(Cont);
+					LeaveCriticalSection(&OurCriticalSection);
+					Contacts.front().WaitingState = WAIT_TS_CONTACT;
+
+					printf("Got the client...\n");
+				}
 				
-				int BytesReceived = recv(Cont.Sock, Cont.Message, MESSAGE_SIZE, 0);
-				CheckNetError();
-
-				EnterCriticalSection(&OurCriticalSection);
-				Contacts.push_front(Cont);
-				LeaveCriticalSection(&OurCriticalSection);
-				Contacts.front().WaitingState = WAIT_TS_CONTACT;
-
-				printf("Got the client\n");
+				Tmp--;
 			}
-			TmpCopy--;
-		}
-		/*
-		if (ClientIsConnected == true){
-			*Command = TC_GETCOMMAND;
-			
-			HMODULE OurLib = LoadLibraryA("SSS.dll");
-			(sss_prototype*) OurSSS = (sss_prototype*)GetProcAddress(OurLib, "SSS");
-			HANDLE TmpHandle;
-			if (OurSSS && (TmpHandle = OurSSS("EchoServer", Command)) != INVALID_HANDLE_VALUE){
-				WaitForSingleObject(TmpHandle, INFINITE);
+			if (ClientIsConnected == true){
+				*Command = TC_GETCOMMAND;
 			}
-			FreeLibrary(OurLib);
-		}
-		else{
 			//SleepEx(0, TRUE);
+			
 		}
-		*/
 	}
-
 
 	closesocket(GlobalServerSock);
 	CheckNetError();
@@ -136,7 +166,7 @@ DWORD WINAPI AcceptServer(LPVOID Param){
 	WSACleanup();
 	CheckNetError();
 
-	ExitThread(Result);
+	printf("AcceptServer finished\n");
 	return(Result);
 }
 
@@ -225,56 +255,16 @@ DWORD WINAPI ConsolePipe(LPVOID Param){
 		}
 	}
 
-	ExitThread(Result);
-	return(Result);
-}
-
-DWORD WINAPI GarbageCleaner(LPVOID Param){
-	DWORD Result = 0;
-
-	EnterCriticalSection(&OurCriticalSection);
-	//TODO(Dima): Remove element from list
-	LeaveCriticalSection(&OurCriticalSection);
-
-	ExitThread(Result);
-	return(Result);
-}
-
-DWORD WINAPI DispatchServer(LPVOID Param){
-	DWORD Result = 0;
-
-	printf("Dispatch Server\n");
-
-	talkers_command* Command = (talkers_command*)Param;
-	
-	while(GlobalRunning == true){
-	
-		list_contact::iterator it = Contacts.begin();
-		for (it; it != Contacts.end(); it++){
-			if ((*it).WaitingState == WAIT_TS_CONTACT && (*it).WorkingState == WORK_TS_DEFAULT){
-				HMODULE OurLib = LoadLibraryA("SSS.dll");
-				(sss_prototype*)OurSSS = (sss_prototype*)GetProcAddress(OurLib, "SSS");
-				HANDLE TmpHandle;
-				if (OurSSS && (TmpHandle = OurSSS("EchoServer", &(*it))) != INVALID_HANDLE_VALUE){
-					
-					WaitForSingleObject(TmpHandle, INFINITE);
-				}
-				FreeLibrary(OurLib);
-			}
-		}
-	}
-
-	ExitThread(Result);
 	return(Result);
 }
 
 DWORD WINAPI EchoServer(LPVOID Param){
 	DWORD Result = 0;
-
 	printf("Echo server\n");
-
 	contact* Cont = (contact*)Param;
 	Cont->WorkingState = WORK_TS_WORK;
+
+	QueueUserAPC(EchoStartAP, Cont->DispServHandle, (ULONG_PTR)Param);
 
 	char OutputBuffer[50] = "Wtf Server";
 	char* InputBuffer = (char*)malloc(MESSAGE_SIZE * sizeof(char));
@@ -288,10 +278,103 @@ DWORD WINAPI EchoServer(LPVOID Param){
 
 	Cont->WorkingState = WORK_TS_FINISH;
 
-	ExitThread(Result);
+	QueueUserAPC(EchoFinishAP, Cont->DispServHandle, (ULONG_PTR)Param);
+
+	printf("Echo server thread exited with code: %u\n", Result);
 	return(Result);
 }
 
+DWORD WINAPI DispatchServer(LPVOID Param){
+	DWORD Result = 0;
+
+	printf("Dispatch Server\n");
+
+	talkers_command* Command = (talkers_command*)Param;
+	
+	while (GlobalRunning == true){
+		EnterCriticalSection(&OurCriticalSection);
+		for (int i = 0; i < Contacts.size(); i++){
+			list_contact::iterator it = Contacts.begin();
+			std::advance(it, i);
+			if (it != Contacts.end()){
+				if (it->WaitingState == WAIT_TS_CONTACT && it->WorkingState == WORK_TS_DEFAULT){
+
+					if (strcmp(it->Message, "EchoServer") != 0 &&
+						strcmp(it->Message, "TimeServer") != 0 &&
+						strcmp(it->Message, "0001") != 0)
+					{
+						it->WorkingState = WORK_TS_ABORT;
+						closesocket(it->Sock);
+						CheckNetError();
+					}
+					else{
+						it->TimerHandle = CreateWaitableTimer(0, FALSE, 0);
+						LARGE_INTEGER Li;
+						int Seconds = 5;
+						Li.QuadPart = -(10000000 * Seconds);
+						SleepEx(0, TRUE);
+						//WaitForSingleObject(it->TimerHandle, INFINITE);
+						SetWaitableTimer(it->TimerHandle, &Li, 0, ASWTimer, (LPVOID)&(*it), FALSE);
+						it->ThreadHandle = OurSSS(it->Message, &(*it));
+						if (it->ThreadHandle != INVALID_HANDLE_VALUE){
+							WaitForSingleObject(it->ThreadHandle, INFINITE);
+							CloseHandle(it->ThreadHandle);
+						}
+						else{
+							printf("Can not service this client. Sent abort message.\n");
+							it->WorkingState = WORK_TS_ABORT;
+							CancelWaitableTimer(it->TimerHandle);
+							closesocket(it->Sock);
+							CheckNetError();
+						}
+					}
+				}
+			}
+		}
+		LeaveCriticalSection(&OurCriticalSection);
+	}
+	
+	printf("Exiting DISPATCH thread.\n");
+	return(Result);
+}
+
+DWORD WINAPI GarbageCleaner(LPVOID Param){
+	DWORD Result = 0;
+
+	talkers_command* Command = (talkers_command*)Param;
+
+	while (GlobalRunning == true){
+		EnterCriticalSection(&OurCriticalSection);
+		for (int i = 0; i < Contacts.size(); i++){
+			list_contact::iterator it = Contacts.begin();
+			std::advance(it, i);
+			if (it != Contacts.end()){
+				working_thread_state Ts = it->WorkingState;
+				
+				if (Ts == WORK_TS_FINISH || Ts == WORK_TS_ABORT || Ts == WORK_TS_TIMEOUT){
+					if (Ts == WORK_TS_FINISH){
+
+					}
+					else if (Ts == WORK_TS_ABORT || Ts == WORK_TS_TIMEOUT){
+
+					}
+					CloseHandle(it->ThreadHandle);
+					CloseHandle(it->TimerHandle);
+					closesocket(it->Sock);
+					it = Contacts.erase(it);
+				}
+				else{
+					//WaitForSingleObject(it->ThreadHandle, INFINITE);
+					//CloseHandle(it->ThreadHandle);
+				}
+			}
+		}
+		LeaveCriticalSection(&OurCriticalSection);
+	}
+
+	printf("Exiting the GARBAGE CLEANER thread.\n");
+	return(Result);
+}
 
 
 int main(int argc, char** argv){
@@ -301,39 +384,32 @@ int main(int argc, char** argv){
 		sscanf(argv[1], "%d", &GlobalPortNumber);
 	}
 
+	HMODULE OurLib = LoadLibraryA("SSS.dll");
+	(sss_prototype*)OurSSS = (sss_prototype*)GetProcAddress(OurLib, "SSS");
+
 	InitializeCriticalSection(&OurCriticalSection);
 
 	volatile talkers_command cmd = TC_START;
 
-	HANDLE AcceptServerHandle;
-	HANDLE ConsolePipeHandle;
-	HANDLE GarbageCleanerHandle;
-	HANDLE DispatchServerHandle;
+	AcceptServerHandle = CreateThread(0, 0, AcceptServer, (LPVOID)&cmd, 0, 0);
+	DispatchServerHandle = CreateThread(0, 0, DispatchServer, (LPVOID)&cmd, 0, 0);
+	ConsolePipeHandle = CreateThread(0, 0, ConsolePipe, (LPVOID)&cmd, 0, 0);
+	GarbageCleanerHandle = CreateThread(0, 0, GarbageCleaner, (LPVOID)&cmd, 0, 0);
 
-	DWORD AcceptThreadId;
-	AcceptServerHandle = CreateThread(0, 0, AcceptServer, (LPVOID)&cmd, 0, &AcceptThreadId);
-	DWORD DispatchThreadId;
-	DispatchServerHandle = CreateThread(0, 0, DispatchServer, (LPVOID)&cmd, 0, &DispatchThreadId);
-	DWORD ConsoleThreadId;
-	ConsolePipeHandle = CreateThread(0, 0, ConsolePipe, (LPVOID)&cmd, 0, &ConsoleThreadId);
-	DWORD GarbageThreadId;
-	GarbageCleanerHandle = CreateThread(0, 0, GarbageCleaner, (LPVOID)&cmd, 0, &GarbageThreadId);
 
 	WaitForSingleObject(AcceptServerHandle, INFINITE);
-	CloseHandle(AcceptServerHandle);
 	WaitForSingleObject(DispatchServerHandle, INFINITE);
-	CloseHandle(DispatchServerHandle);
 	WaitForSingleObject(ConsolePipeHandle, INFINITE);
-	CloseHandle(ConsolePipeHandle);
 	WaitForSingleObject(GarbageCleanerHandle, INFINITE);
+
+	CloseHandle(AcceptServerHandle);
+	CloseHandle(DispatchServerHandle);
+	CloseHandle(ConsolePipeHandle);
 	CloseHandle(GarbageCleanerHandle);
 
-	WSADATA WsaData;
-	WSAStartup(MAKEWORD(2, 0), &WsaData);
-
-	WSACleanup();
-
 	DeleteCriticalSection(&OurCriticalSection);
+
+	FreeLibrary(OurLib);
 	
 	system("pause");
 	return 0;

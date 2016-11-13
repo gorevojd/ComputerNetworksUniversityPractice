@@ -33,7 +33,7 @@ enum talkers_command{
 };
 
 enum waiting_thread_state{
-	WAIT_TS_EMPTY,
+	WAIT_TS_EMPTY = 0,
 	WAIT_TS_ACCEPT,
 	WAIT_TS_CONTACT
 };
@@ -55,6 +55,9 @@ struct contact{
 	HANDLE ThreadHandle;
 	HANDLE TimerHandle;
 
+	HANDLE AccServHandle;
+	HANDLE DispServHandle;
+
 	char Message[MESSAGE_SIZE];
 	char ServerName[15];
 };
@@ -72,9 +75,53 @@ inline contact CreateContact(waiting_thread_state State, const char* ServerName 
 	return(Result);
 }
 
+inline contact CreateEmptyContact(){
+	contact Result = {};
+	return(Result);
+}
+
 void SetWorkingState(contact* Contact, working_thread_state WorkingState, const char* Message = ""){
 	Contact->WorkingState = WorkingState;
 	strcpy(Contact->Message, Message);
+}
+
+/*
+The different color codes are
+
+0   BLACK
+1   BLUE
+2   GREEN
+3   CYAN
+4   RED
+5   MAGENTA
+6   BROWN
+7   LIGHTGRAY
+8   DARKGRAY
+9   LIGHTBLUE
+10  LIGHTGREEN
+11  LIGHTCYAN
+12  LIGHTRED
+13  LIGHTMAGENTA
+14  YELLOW
+15  WHITE
+*/
+void PrintColorText(const char* Text, DWORD Color = 7){
+	SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), Color);
+	printf(Text);
+	SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 7);
+}
+
+void SetConsoleColor(DWORD Color = 7){
+	SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), Color);
+}
+
+void PrintTime(){
+	SYSTEMTIME St;
+	GetLocalTime(&St);
+	printf(
+		"%Time: %u-%u-%u. Date: %u.%u.%u\n",
+		St.wHour, St.wMinute, St.wSecond,
+		St.wDay, St.wMonth, St.wYear);
 }
 
 void CheckNetError(){
