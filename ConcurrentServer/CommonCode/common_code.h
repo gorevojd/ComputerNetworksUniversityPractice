@@ -119,8 +119,8 @@ void PrintTime(){
 	SYSTEMTIME St;
 	GetLocalTime(&St);
 	printf(
-		"%Time: %u-%u-%u. Date: %u.%u.%u\n",
-		St.wHour, St.wMinute, St.wSecond,
+		"%Time: %u:%u:%u:%u. Date: %u.%u.%u\n",
+		St.wHour, St.wMinute, St.wSecond, St.wMilliseconds, 
 		St.wDay, St.wMonth, St.wYear);
 }
 

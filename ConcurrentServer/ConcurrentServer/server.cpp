@@ -10,18 +10,20 @@ struct server_thread_context{
 	int PortNumber;
 };
 
+static HANDLE OurEvent = CreateEvent(0, FALSE, FALSE, 0);
 static CRITICAL_SECTION OurCriticalSection;
 static bool GlobalRunning = true;
 static bool GlobalListeningClients;
 static int GlobalPortNumber;
 static int GlobalListSize;
+
 static SOCKET GlobalServerSock;
 static HMODULE OurLib;
 
-HANDLE AcceptServerHandle;
-HANDLE ConsolePipeHandle;
-HANDLE GarbageCleanerHandle;
-HANDLE DispatchServerHandle;
+static HANDLE AcceptServerHandle;
+static HANDLE ConsolePipeHandle;
+static HANDLE GarbageCleanerHandle;
+static HANDLE DispatchServerHandle;
 
 static list<contact> Contacts;
 
@@ -146,7 +148,7 @@ DWORD WINAPI AcceptServer(LPVOID Param){
 					Contacts.push_front(Cont);
 					LeaveCriticalSection(&OurCriticalSection);
 					Contacts.front().WaitingState = WAIT_TS_CONTACT;
-
+					SetEvent(OurEvent);
 					printf("Got the client...\n");
 				}
 				
@@ -155,7 +157,7 @@ DWORD WINAPI AcceptServer(LPVOID Param){
 			if (ClientIsConnected == true){
 				*Command = TC_GETCOMMAND;
 			}
-			//SleepEx(0, TRUE);
+			SleepEx(0, TRUE);
 			
 		}
 	}
@@ -264,7 +266,7 @@ DWORD WINAPI EchoServer(LPVOID Param){
 	contact* Cont = (contact*)Param;
 	Cont->WorkingState = WORK_TS_WORK;
 
-	QueueUserAPC(EchoStartAP, Cont->DispServHandle, (ULONG_PTR)Param);
+	QueueUserAPC(EchoStartAP, Cont->AccServHandle, (ULONG_PTR)Param);
 
 	char OutputBuffer[50] = "Wtf Server";
 	char* InputBuffer = (char*)malloc(MESSAGE_SIZE * sizeof(char));
@@ -278,7 +280,7 @@ DWORD WINAPI EchoServer(LPVOID Param){
 
 	Cont->WorkingState = WORK_TS_FINISH;
 
-	QueueUserAPC(EchoFinishAP, Cont->DispServHandle, (ULONG_PTR)Param);
+	QueueUserAPC(EchoFinishAP, Cont->AccServHandle, (ULONG_PTR)Param);
 
 	printf("Echo server thread exited with code: %u\n", Result);
 	return(Result);
@@ -292,40 +294,41 @@ DWORD WINAPI DispatchServer(LPVOID Param){
 	talkers_command* Command = (talkers_command*)Param;
 	
 	while (GlobalRunning == true){
-		EnterCriticalSection(&OurCriticalSection);
-		for (int i = 0; i < Contacts.size(); i++){
-			list_contact::iterator it = Contacts.begin();
-			std::advance(it, i);
-			if (it != Contacts.end()){
-				if (it->WaitingState == WAIT_TS_CONTACT && it->WorkingState == WORK_TS_DEFAULT){
+		if (WaitForSingleObject(OurEvent, INFINITE) == WAIT_OBJECT_0){
+			EnterCriticalSection(&OurCriticalSection);
+			for (int i = 0; i < Contacts.size(); i++){
+				list_contact::iterator it = Contacts.begin();
+				std::advance(it, i);
+				if (it != Contacts.end()){
+					if (it->WaitingState == WAIT_TS_CONTACT && it->WorkingState == WORK_TS_DEFAULT){
 
-					if (strcmp(it->Message, "EchoServer") != 0 &&
-						strcmp(it->Message, "TimeServer") != 0 &&
-						strcmp(it->Message, "0001") != 0)
-					{
-						it->WorkingState = WORK_TS_ABORT;
-						closesocket(it->Sock);
-						CheckNetError();
-					}
-					else{
-						it->TimerHandle = CreateWaitableTimer(0, FALSE, 0);
-						LARGE_INTEGER Li;
-						int Seconds = 5;
-						Li.QuadPart = -(10000000 * Seconds);
-						SleepEx(0, TRUE);
-						//WaitForSingleObject(it->TimerHandle, INFINITE);
-						SetWaitableTimer(it->TimerHandle, &Li, 0, ASWTimer, (LPVOID)&(*it), FALSE);
-						it->ThreadHandle = OurSSS(it->Message, &(*it));
-						if (it->ThreadHandle != INVALID_HANDLE_VALUE){
-							WaitForSingleObject(it->ThreadHandle, INFINITE);
-							CloseHandle(it->ThreadHandle);
-						}
-						else{
-							printf("Can not service this client. Sent abort message.\n");
+						if (strcmp(it->Message, "EchoServer") != 0 &&
+							strcmp(it->Message, "TimeServer") != 0 &&
+							strcmp(it->Message, "0001") != 0)
+						{
 							it->WorkingState = WORK_TS_ABORT;
-							CancelWaitableTimer(it->TimerHandle);
 							closesocket(it->Sock);
 							CheckNetError();
+						}
+						else{
+							it->TimerHandle = CreateWaitableTimer(0, FALSE, 0);
+							LARGE_INTEGER Li;
+							int Seconds = 10;
+							Li.QuadPart = -(10000000 * Seconds);
+							//WaitForSingleObject(it->TimerHandle, INFINITE);
+							SleepEx(0, TRUE);
+							SetWaitableTimer(it->TimerHandle, &Li, 0, ASWTimer, (LPVOID)&(*it), FALSE);
+							it->ThreadHandle = OurSSS(it->Message, &(*it));
+							if (it->ThreadHandle != INVALID_HANDLE_VALUE){
+								WaitForSingleObject(it->ThreadHandle, INFINITE);
+							}
+							else{
+								printf("Can not service this client. Sent abort message.\n");
+								it->WorkingState = WORK_TS_ABORT;
+								CancelWaitableTimer(it->TimerHandle);
+								closesocket(it->Sock);
+								CheckNetError();
+							}
 						}
 					}
 				}
