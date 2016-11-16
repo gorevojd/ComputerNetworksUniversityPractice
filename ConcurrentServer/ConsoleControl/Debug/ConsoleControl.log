@@ -1,14 +1,14 @@
-﻿Build started 13.11.2016 11:00:28.
+﻿Build started 16.11.2016 14:31:11.
      1>Project "E:\Univer\Shiman\Labs\ConcurrentServer\ConsoleControl\ConsoleControl.vcxproj" on node 4 (Build target(s)).
      1>ClCompile:
          C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\bin\CL.exe /c /ZI /nologo /W3 /WX- /Od /Oy- /D WIN32 /D _DEBUG /D _CONSOLE /D _LIB /D _USING_V110_SDK71_ /D _UNICODE /D UNICODE /Gm /EHsc /RTC1 /MTd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Fo"Debug\\" /Fd"Debug\vc120.pdb" /Gd /TP /analyze- /errorReport:prompt console.cpp
          console.cpp
-     1>e:\univer\shiman\labs\concurrentserver\commoncode\common_code.h(72): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+     1>e:\univer\shiman\labs\concurrentserver\commoncode\common_code.h(75): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
                  c:\program files (x86)\microsoft visual studio 12.0\vc\include\string.h(112) : see declaration of 'strcpy'
-     1>e:\univer\shiman\labs\concurrentserver\commoncode\common_code.h(85): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+     1>e:\univer\shiman\labs\concurrentserver\commoncode\common_code.h(88): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
                  c:\program files (x86)\microsoft visual studio 12.0\vc\include\string.h(112) : see declaration of 'strcpy'
-     1>e:\univer\shiman\labs\concurrentserver\commoncode\common_code.h(109): warning C4244: 'argument' : conversion from 'DWORD' to 'WORD', possible loss of data
-     1>e:\univer\shiman\labs\concurrentserver\commoncode\common_code.h(115): warning C4244: 'argument' : conversion from 'DWORD' to 'WORD', possible loss of data
+     1>e:\univer\shiman\labs\concurrentserver\commoncode\common_code.h(112): warning C4244: 'argument' : conversion from 'DWORD' to 'WORD', possible loss of data
+     1>e:\univer\shiman\labs\concurrentserver\commoncode\common_code.h(118): warning C4244: 'argument' : conversion from 'DWORD' to 'WORD', possible loss of data
      1>e:\univer\shiman\labs\concurrentserver\consolecontrol\console.cpp(32): warning C4996: 'scanf': This function or variable may be unsafe. Consider using scanf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
                  c:\program files (x86)\microsoft visual studio 12.0\vc\include\stdio.h(283) : see declaration of 'scanf'
      1>e:\univer\shiman\labs\concurrentserver\consolecontrol\console.cpp(35): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
@@ -23,4 +23,4 @@
 
 Build succeeded.
 
-Time Elapsed 00:00:03.43
+Time Elapsed 00:00:02.06

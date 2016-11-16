@@ -2,7 +2,9 @@
 #include "../ConcurrentServer/server.cpp"
 
 BEGIN_TABLESERVICE
-ENTRY_SERVICE("EchoServer", EchoServer),
+ENTRY_SERVICE("Echo", EchoServer),
+ENTRY_SERVICE("Time", TimeServer),
+ENTRY_SERVICE("Rand", RandServer)
 END_TABLESERVICE
 
 EXPORT SSS_PROT(SSS){

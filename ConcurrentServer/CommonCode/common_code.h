@@ -5,7 +5,8 @@
 #include <Windows.h>
 #include <list>
 
-#define MESSAGE_SIZE 256
+#define MESSAGE_SIZE 64
+#define TEST_TIME_TO_SLEEP 10
 
 struct table_entry{
 	char Id[20];
@@ -54,6 +55,8 @@ struct contact{
 	int SockAddrLen;
 	HANDLE ThreadHandle;
 	HANDLE TimerHandle;
+
+	bool IsTimerEnded;
 
 	HANDLE AccServHandle;
 	HANDLE DispServHandle;
