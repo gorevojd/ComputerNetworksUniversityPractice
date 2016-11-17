@@ -24,6 +24,7 @@ static HANDLE AcceptServerHandle;
 static HANDLE ConsolePipeHandle;
 static HANDLE GarbageCleanerHandle;
 static HANDLE DispatchServerHandle;
+static HANDLE UdpThreadHandle;
 
 static list<contact> Contacts;
 
@@ -51,8 +52,6 @@ VOID CALLBACK ASWTimer(
 VOID CALLBACK EchoStartAP(ULONG_PTR Param){	
 	printf("AP START\n");
 	PrintTime();
-
-	InterlockedIncrement(&CurrentlyWorkingClients);
 }
 
 VOID CALLBACK EchoFinishAP(ULONG_PTR Param){
@@ -62,8 +61,7 @@ VOID CALLBACK EchoFinishAP(ULONG_PTR Param){
 	//contact* Cont = (contact*)Param;
 	//Cont->WorkingState = WORK_TS_FINISH;
 
-	InterlockedDecrement(&CurrentlyWorkingClients);
-	CancelWaitableTimer(((contact*)Param)->TimerHandle);
+	//CancelWaitableTimer(((contact*)Param)->TimerHandle);
 }
 
 static void WaitForClients(){
@@ -365,8 +363,10 @@ DWORD WINAPI EchoServer(LPVOID Param){
 	contact* Cont = (contact*)Param;
 
 	Cont->WorkingState = WORK_TS_WORK;
+	InterlockedIncrement(&CurrentlyWorkingClients);
 
 	QueueUserAPC(EchoStartAP, Cont->AccServHandle, (ULONG_PTR)Param);
+	printf("%u\n", CurrentlyWorkingClients);
 
 	bool ContinueLoop = true;
 	while (ContinueLoop == true && Cont->IsTimerEnded == false){
@@ -393,6 +393,7 @@ DWORD WINAPI EchoServer(LPVOID Param){
 	else{
 		Cont->WorkingState = WORK_TS_TIMEOUT;
 	}
+	InterlockedDecrement(&CurrentlyWorkingClients);
 
 	printf("Echo server thread exited with code: %u\n", Result);
 	return(Result);
@@ -430,7 +431,7 @@ DWORD WINAPI DispatchServer(LPVOID Param){
 
 							it->TimerHandle = CreateWaitableTimer(0, FALSE, 0);
 							LARGE_INTEGER Li;
-							int Seconds = 3;
+							int Seconds = 10;
 							Li.QuadPart = -(10000000 * Seconds);
 							it->IsTimerEnded = false;
 							SetWaitableTimer(it->TimerHandle, &Li, 0, ASWTimer, (LPVOID)&(*it), FALSE);
@@ -507,6 +508,59 @@ DWORD WINAPI GarbageCleaner(LPVOID Param){
 	return(Result);
 }
 
+DWORD WINAPI UdpThread(LPVOID Param){
+	DWORD Result = 0;
+	printf("Udp thread\n");
+	SOCKET ServerSocket = socket(AF_INET, SOCK_DGRAM, 0);
+
+	SOCKADDR_IN Serv;
+	Serv.sin_family = AF_INET;
+	Serv.sin_port = htons(2000);
+	Serv.sin_addr.s_addr = INADDR_ANY;
+	
+	bool BindResult = false;
+	while (BindResult == false){
+		if (bind(ServerSocket, (LPSOCKADDR)&Serv, sizeof(Serv)) != SOCKET_ERROR){
+			BindResult = true;
+			printf("Udp socket has been bound\n");
+
+			talkers_command* Command = (talkers_command*)Param;
+			while (*Command != TC_EXIT){
+				char* ReceivedStr = (char*)malloc(MESSAGE_SIZE * sizeof(char));
+				SOCKADDR_IN Clnt = {};
+				int ClntLen = sizeof(Clnt);
+
+				int RecvCount = recvfrom(
+					ServerSocket,
+					ReceivedStr,
+					MESSAGE_SIZE,
+					0,
+					(sockaddr*)&Clnt,
+					&ClntLen);
+
+				if (RecvCount != SOCKET_ERROR){
+					int SentCount = sendto(
+						ServerSocket,
+						ReceivedStr,
+						RecvCount,
+						0,
+						(sockaddr*)&Clnt,
+						ClntLen);
+					if (SentCount != SOCKET_ERROR){
+						printf("Accepted clients broadcast query - %d bytes\n", SentCount);
+					}
+				}
+
+				free(ReceivedStr);
+			}
+		}
+	}
+
+
+	closesocket(ServerSocket);
+	printf("Exiting Udp Thread\n");
+	return(Result);
+}
 
 int main(int argc, char** argv){
 
@@ -526,17 +580,20 @@ int main(int argc, char** argv){
 	DispatchServerHandle = CreateThread(0, 0, DispatchServer, (LPVOID)&cmd, 0, 0);
 	ConsolePipeHandle = CreateThread(0, 0, ConsolePipe, (LPVOID)&cmd, 0, 0);
 	GarbageCleanerHandle = CreateThread(0, 0, GarbageCleaner, (LPVOID)&cmd, 0, 0);
+	UdpThreadHandle = CreateThread(0, 0, UdpThread, (LPVOID)&cmd, 0, 0);
 
 
 	WaitForSingleObject(AcceptServerHandle, INFINITE);
 	WaitForSingleObject(DispatchServerHandle, INFINITE);
 	WaitForSingleObject(ConsolePipeHandle, INFINITE);
 	WaitForSingleObject(GarbageCleanerHandle, INFINITE);
+	WaitForSingleObject(UdpThreadHandle, INFINITE);
 
 	CloseHandle(AcceptServerHandle);
 	CloseHandle(DispatchServerHandle);
 	CloseHandle(ConsolePipeHandle);
 	CloseHandle(GarbageCleanerHandle);
+	CloseHandle(UdpThreadHandle);
 
 	DeleteCriticalSection(&OurCriticalSection);
 

@@ -27,28 +27,55 @@ int main(int argc, char** argv){
 		CheckNetError();
 
 
-		//char QueryOutputBuffer[] = "Echo";
+		SOCKET TempSocket = socket(AF_INET, SOCK_DGRAM, 0);
+		int optval = 1;
+		int TimeOut = 1000;
+		setsockopt(TempSocket, SOL_SOCKET, SO_BROADCAST, (char*)&optval, sizeof(int));
+		CheckNetError();
+		setsockopt(TempSocket, SOL_SOCKET, SO_RCVTIMEO, (char*)&TimeOut, sizeof(TimeOut));
+		CheckNetError();
+
+		SOCKADDR_IN All = {};
+		All.sin_family = AF_INET;
+		All.sin_port = htons(2000);
+		All.sin_addr.s_addr = INADDR_BROADCAST;
+
+		char UdpOutputBuffer[] = "Hello";
+		char* UdpInputBuffer = (char*)malloc(MESSAGE_SIZE * sizeof(char));
+		int UdpBytesSent = sendto(
+			TempSocket, 
+			UdpOutputBuffer, 
+			strlen(UdpOutputBuffer) + 1, 
+			0, 
+			(sockaddr*)&All, 
+			sizeof(All));
+
+		if (UdpBytesSent = SOCKET_ERROR){
+			int AllLen = sizeof(All);
+			int UdpReceivedBytesCount = recvfrom(
+				TempSocket,
+				UdpInputBuffer,
+				MESSAGE_SIZE,
+				0,
+				(sockaddr*)&All,
+				&AllLen);
+			if (UdpReceivedBytesCount != SOCKET_ERROR){
+				printf("Succesfully received UDP sent message - %d bytes\n", UdpReceivedBytesCount);
+				
+			}
+		}
+
+		free(UdpInputBuffer);
+		closesocket(TempSocket);
+
 		char QueryOutputBuffer[64];
 		cin >> QueryOutputBuffer;
-
-		//if (strcmp(QueryOutputBuffer, "Echo") != 0 &&
-		//	strcmp(QueryOutputBuffer, "Time") != 0 &&
-		//	strcmp(QueryOutputBuffer, "Rand") != 0)
-		//{
-		//	
-		//}
-		//else{
-
-		//}
 		
+
 		SOCKADDR_IN serv;
 		serv.sin_family = AF_INET;
 		serv.sin_port = htons(2000);
-		//serv.sin_addr.s_addr = inet_addr(ipstr);
-		serv.sin_addr.s_addr = inet_addr("127.0.0.1");
-
-		//unsigned long nonblk;
-		//int tr = ioctlsocket(serverSock, FIONBIO, &(nonblk = 1));
+		serv.sin_addr.s_addr = All.sin_addr.s_addr;
 
 		if (strcmp(QueryOutputBuffer, "Echo") == 0){
 
