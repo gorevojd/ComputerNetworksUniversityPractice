@@ -16,6 +16,7 @@ static CRITICAL_SECTION OurCriticalSection;
 static bool GlobalListeningClients;
 static int GlobalPortNumber;
 static int GlobalListSize;
+static bool GlobalRunning = true;
 
 static SOCKET GlobalServerSock;
 static HMODULE OurLib;
@@ -121,6 +122,7 @@ DWORD WINAPI AcceptServer(LPVOID Param){
 			}break;
 			case(TC_EXIT) : {
 				*Command = TC_EXIT;
+				GlobalRunning = false;
 			}break;
 			case(TC_WAIT) : {
 				WaitForClients();
@@ -133,6 +135,7 @@ DWORD WINAPI AcceptServer(LPVOID Param){
 			case(TC_SHUTDOWN) : {
 				WaitForClients();
 				*Command = TC_EXIT;
+				GlobalRunning = false;
 			}break;
 			case(TC_GETCOMMAND) : {
 
@@ -221,10 +224,15 @@ DWORD WINAPI ConsolePipe(LPVOID Param){
 		if (ServerHandle != INVALID_HANDLE_VALUE){
 			ConnectNamedPipe(ServerHandle, 0);
 
+			bool ExitLoop = false;
+
 			while (*Command != TC_EXIT){
 				void* Contents = VirtualAlloc(0, MESSAGE_SIZE, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
 				DWORD BytesRead;
-				ReadFile(ServerHandle, (char*)Contents, MESSAGE_SIZE, &BytesRead, 0);
+				BOOL TmpResad = ReadFile(ServerHandle, (char*)Contents, MESSAGE_SIZE, &BytesRead, 0);
+				if (!TmpResad && *Command == TC_EXIT){
+					break;
+				}
 				//TODO(Dima):
 
 				talkers_command* OurCommand = (talkers_command*)Param;
@@ -270,6 +278,7 @@ DWORD WINAPI ConsolePipe(LPVOID Param){
 					free(StatStr);
 				}
 
+				bool IfExitOrShutdown = false;
 				switch (*OurCommand){
 					case(TC_START) : {
 						OutputDebugStringA("START\n");
@@ -279,6 +288,7 @@ DWORD WINAPI ConsolePipe(LPVOID Param){
 					}break;
 					case(TC_EXIT) : {
 						OutputDebugStringA("EXIT\n");
+						IfExitOrShutdown = true;
 					}break;
 					case(TC_WAIT) : {
 						OutputDebugStringA("WAIT\n");
@@ -288,6 +298,8 @@ DWORD WINAPI ConsolePipe(LPVOID Param){
 					}break;
 					case(TC_SHUTDOWN) : {
 						OutputDebugStringA("SHUTDOWN\n");
+						IfExitOrShutdown = true;
+
 					}break;
 					case(TC_GETCOMMAND) : {
 						OutputDebugStringA("GETCOMMAND\n");
@@ -297,7 +309,15 @@ DWORD WINAPI ConsolePipe(LPVOID Param){
 					}
 				}
 
+				if (IfExitOrShutdown == true){
+					ExitLoop = true;
+					break;
+				}
+
 				VirtualFree(Contents, 0, MEM_RELEASE);
+			}
+			if (ExitLoop == true){
+				break;
 			}
 		}
 		CloseHandle(ServerHandle);
@@ -369,13 +389,13 @@ DWORD WINAPI EchoServer(LPVOID Param){
 	printf("%u\n", CurrentlyWorkingClients);
 
 	bool ContinueLoop = true;
-	while (ContinueLoop == true && Cont->IsTimerEnded == false){
+	while (ContinueLoop == true && Cont->IsTimerEnded == false && GlobalRunning == true){
 		char* InputBuffer = (char*)malloc(MESSAGE_SIZE * sizeof(char));
 		int ReceivedBytesCount = recv(Cont->Sock, InputBuffer, MESSAGE_SIZE, NULL);
 
-		if (ReceivedBytesCount != -1){
+		if (ReceivedBytesCount != -1 && GlobalRunning == true){
 			printf("%s\n", InputBuffer);
-			if (strlen(InputBuffer) == 0){
+			if (strlen(InputBuffer) == 0 && GlobalRunning == true){
 				ContinueLoop = false;
 				break;
 			}
@@ -395,7 +415,7 @@ DWORD WINAPI EchoServer(LPVOID Param){
 	}
 	InterlockedDecrement(&CurrentlyWorkingClients);
 
-	printf("Echo server thread exited with code: %u\n", Result);
+	printf("Exiting Echo Server Thread\n", Result);
 	return(Result);
 }
 
@@ -431,7 +451,7 @@ DWORD WINAPI DispatchServer(LPVOID Param){
 
 							it->TimerHandle = CreateWaitableTimer(0, FALSE, 0);
 							LARGE_INTEGER Li;
-							int Seconds = 10;
+							int Seconds = 60;
 							Li.QuadPart = -(10000000 * Seconds);
 							it->IsTimerEnded = false;
 							SetWaitableTimer(it->TimerHandle, &Li, 0, ASWTimer, (LPVOID)&(*it), FALSE);
@@ -441,7 +461,7 @@ DWORD WINAPI DispatchServer(LPVOID Param){
 
 							it->ThreadHandle = OurSSS(it->Message, &(*it));
 							if (it->ThreadHandle != INVALID_HANDLE_VALUE){
-								//SleepEx(0, TRUE);
+								SleepEx(0, TRUE);
 								//if (WaitForSingleObject(it->TimerHandle, Seconds * 1000) == WAIT_OBJECT_0){
 								//	printf("Dispatch server: Waitable timer entered sygnal state\n");
 								//	SleepEx(0, TRUE);
@@ -502,6 +522,12 @@ DWORD WINAPI GarbageCleaner(LPVOID Param){
 		}
 		LeaveCriticalSection(&OurCriticalSection);
 		Sleep(1000);
+	}
+	for (list_contact::iterator it = Contacts.begin();
+		it != Contacts.end();
+		it++)
+	{
+		WaitForSingleObject(it->ThreadHandle, INFINITE);
 	}
 
 	printf("Exiting the GARBAGE CLEANER thread.\n");
