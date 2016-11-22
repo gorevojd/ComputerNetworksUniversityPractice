@@ -16,7 +16,8 @@ static CRITICAL_SECTION OurCriticalSection;
 static bool GlobalListeningClients;
 static int GlobalPortNumber;
 static int GlobalListSize;
-static bool GlobalRunning = true;
+
+volatile DWORD GlobalRunning = 1;
 
 static SOCKET GlobalServerSock;
 static HMODULE OurLib;
@@ -29,9 +30,9 @@ static HANDLE UdpThreadHandle;
 
 static list<contact> Contacts;
 
-static volatile DWORD CurrentlyWorkingClients;
-static volatile DWORD FinishedClients;
-static volatile DWORD NotFinishedClients;
+volatile DWORD CurrentlyWorkingClients;
+volatile DWORD FinishedClients;
+volatile DWORD NotFinishedClients;
 
 VOID CALLBACK ASWTimer(
 	LPVOID lpArgToCompletionRoutine,
@@ -82,10 +83,6 @@ DWORD WINAPI AcceptServer(LPVOID Param){
 
 	talkers_command* Command = (talkers_command*)Param;
 
-	WSADATA wsaData;
-	WSAStartup(MAKEWORD(2, 0), &wsaData);
-	CheckNetError();
-
 	GlobalServerSock = socket(AF_INET, SOCK_STREAM, NULL);
 	CheckNetError();
 
@@ -120,10 +117,6 @@ DWORD WINAPI AcceptServer(LPVOID Param){
 				NumberOfTries = 0;
 				*Command = TC_GETCOMMAND;
 			}break;
-			case(TC_EXIT) : {
-				*Command = TC_EXIT;
-				GlobalRunning = false;
-			}break;
 			case(TC_WAIT) : {
 				WaitForClients();
 				*Command = TC_GETCOMMAND;
@@ -134,8 +127,9 @@ DWORD WINAPI AcceptServer(LPVOID Param){
 			}break;
 			case(TC_SHUTDOWN) : {
 				WaitForClients();
+				InterlockedCompareExchange(&GlobalRunning, 0, 1);
+				printf("GlobalRunning: %d\n", GlobalRunning);
 				*Command = TC_EXIT;
-				GlobalRunning = false;
 			}break;
 			case(TC_GETCOMMAND) : {
 
@@ -149,6 +143,7 @@ DWORD WINAPI AcceptServer(LPVOID Param){
 			contact Cont = CreateContact(WAIT_TS_ACCEPT, "Hello");
 			Cont.AccServHandle = AcceptServerHandle;
 			Cont.DispServHandle = DispatchServerHandle;
+			Cont.GlobalRunning = GlobalRunning;
 			bool ClientIsConnected = false; 
 			int Tmp = NumberOfTries;
 			while (Tmp > 0 && ClientIsConnected == false){
@@ -185,9 +180,6 @@ DWORD WINAPI AcceptServer(LPVOID Param){
 	}
 
 	closesocket(GlobalServerSock);
-	CheckNetError();
-
-	WSACleanup();
 	CheckNetError();
 
 	printf("Exiting ACCEPT SERVER thread\n");
@@ -238,6 +230,8 @@ DWORD WINAPI ConsolePipe(LPVOID Param){
 				talkers_command* OurCommand = (talkers_command*)Param;
 				if (strcmp((char*)Contents, "EXIT") == 0){
 					*OurCommand = TC_EXIT;
+					InterlockedCompareExchange(&GlobalRunning, 0, 1);
+					printf("GlobalRunning: %d\n", GlobalRunning);
 				}
 				else if (strcmp((char*)Contents, "START") == 0){
 					*OurCommand = TC_START;
@@ -272,10 +266,12 @@ DWORD WINAPI ConsolePipe(LPVOID Param){
 
 				if (WouldWriteStat == true){
 					char* StatStr = (char*)malloc(MESSAGE_SIZE * sizeof(char));
-					sprintf(StatStr, "FINISHED: %u\nWORKING: %u\nABORTED: %u\n", FinishedClients, CurrentlyWorkingClients, NotFinishedClients);
+					//sprintf(StatStr, "FINISHED: %u\nWORKING: %u\nABORTED: %u\n", FinishedClients, CurrentlyWorkingClients, NotFinishedClients);
+					sprintf(StatStr, "FINISHED: %u\nWORKING: %u\nABORTED: %u\n", FinishedClients, Contacts.size(), NotFinishedClients);
 					DWORD StatStrWritten;
 					BOOL WriteStatRes = WriteFile(ServerHandle, StatStr, strlen(StatStr) + 1, &StatStrWritten, 0);
 					free(StatStr);
+					*OurCommand = TC_GETCOMMAND;
 				}
 
 				bool IfExitOrShutdown = false;
@@ -386,25 +382,32 @@ DWORD WINAPI EchoServer(LPVOID Param){
 	InterlockedIncrement(&CurrentlyWorkingClients);
 
 	QueueUserAPC(EchoStartAP, Cont->AccServHandle, (ULONG_PTR)Param);
-	printf("%u\n", CurrentlyWorkingClients);
 
 	bool ContinueLoop = true;
-	while (ContinueLoop == true && Cont->IsTimerEnded == false && GlobalRunning == true){
+	while ((ContinueLoop == true) && (Cont->IsTimerEnded == false) && Cont->GlobalRunning){
 		char* InputBuffer = (char*)malloc(MESSAGE_SIZE * sizeof(char));
 		int ReceivedBytesCount = recv(Cont->Sock, InputBuffer, MESSAGE_SIZE, NULL);
-
-		if (ReceivedBytesCount != -1 && GlobalRunning == true){
+		//printf("Recv bytes: %d\n", ReceivedBytesCount);
+		if (ReceivedBytesCount != -1 && Cont->GlobalRunning){
 			printf("%s\n", InputBuffer);
-			if (strlen(InputBuffer) == 0 && GlobalRunning == true){
+			CheckNetError();
+			if ((strlen(InputBuffer) == 0) || (WSAGetLastError() == WSAECONNRESET)){
 				ContinueLoop = false;
 				break;
 			}
+
 			int SentBytesCount = send(Cont->Sock, InputBuffer, strlen(InputBuffer) + 1, NULL);
+			//printf("Sent bytes: %d\n", SentBytesCount);
+			if ((SentBytesCount == SOCKET_ERROR)){
+				ContinueLoop = false;
+				break;
+			}
 		}
 
 		free(InputBuffer);
 	}
 	
+	InterlockedDecrement(&CurrentlyWorkingClients);
 	QueueUserAPC(EchoFinishAP, Cont->AccServHandle, (ULONG_PTR)Param);
 	if (Cont->IsTimerEnded == false){
 		Cont->WorkingState = WORK_TS_FINISH;
@@ -413,7 +416,6 @@ DWORD WINAPI EchoServer(LPVOID Param){
 	else{
 		Cont->WorkingState = WORK_TS_TIMEOUT;
 	}
-	InterlockedDecrement(&CurrentlyWorkingClients);
 
 	printf("Exiting Echo Server Thread\n", Result);
 	return(Result);
@@ -523,12 +525,16 @@ DWORD WINAPI GarbageCleaner(LPVOID Param){
 		LeaveCriticalSection(&OurCriticalSection);
 		Sleep(1000);
 	}
+
 	for (list_contact::iterator it = Contacts.begin();
 		it != Contacts.end();
 		it++)
 	{
+		it->GlobalRunning = GlobalRunning;
 		WaitForSingleObject(it->ThreadHandle, INFINITE);
+		InterlockedIncrement(&NotFinishedClients);
 	}
+	
 
 	printf("Exiting the GARBAGE CLEANER thread.\n");
 	return(Result);
@@ -536,21 +542,30 @@ DWORD WINAPI GarbageCleaner(LPVOID Param){
 
 DWORD WINAPI UdpThread(LPVOID Param){
 	DWORD Result = 0;
+
+	talkers_command* Command = (talkers_command*)Param;
+
 	printf("Udp thread\n");
 	SOCKET ServerSocket = socket(AF_INET, SOCK_DGRAM, 0);
+	CheckNetError();
+
+	int TimeOut = 1000;
+	setsockopt(ServerSocket, SOL_SOCKET, SO_RCVTIMEO, (char*)&TimeOut, sizeof(TimeOut));
 
 	SOCKADDR_IN Serv;
 	Serv.sin_family = AF_INET;
-	Serv.sin_port = htons(2000);
+	Serv.sin_port = htons(2005);
 	Serv.sin_addr.s_addr = INADDR_ANY;
 	
+	int TryToBind = 0;
 	bool BindResult = false;
 	while (BindResult == false){
-		if (bind(ServerSocket, (LPSOCKADDR)&Serv, sizeof(Serv)) != SOCKET_ERROR){
+		printf("Try to bind UDP socket: %d\n", TryToBind);
+		int TmpBindRes = bind(ServerSocket, (sockaddr*)&Serv, sizeof(Serv));
+		if (TmpBindRes != -1){
 			BindResult = true;
 			printf("Udp socket has been bound\n");
 
-			talkers_command* Command = (talkers_command*)Param;
 			while (*Command != TC_EXIT){
 				char* ReceivedStr = (char*)malloc(MESSAGE_SIZE * sizeof(char));
 				SOCKADDR_IN Clnt = {};
@@ -580,10 +595,18 @@ DWORD WINAPI UdpThread(LPVOID Param){
 				free(ReceivedStr);
 			}
 		}
+		else{
+			//CheckNetError();
+			//printf("WSA Error: %d\n", WSAGetLastError());
+		}
+		TryToBind++;
+		//Sleep(1000);
 	}
 
 
 	closesocket(ServerSocket);
+
+
 	printf("Exiting Udp Thread\n");
 	return(Result);
 }
@@ -595,13 +618,17 @@ int main(int argc, char** argv){
 		sscanf(argv[1], "%d", &GlobalPortNumber);
 	}
 
+	WSADATA wsaData;
+	WSAStartup(MAKEWORD(2, 0), &wsaData);
+	CheckNetError();
+
 	HMODULE OurLib = LoadLibraryA("SSS.dll");
 	(sss_prototype*)OurSSS = (sss_prototype*)GetProcAddress(OurLib, "SSS");
 
 	InitializeCriticalSection(&OurCriticalSection);
 
 	volatile talkers_command cmd = TC_START;
-
+	
 	AcceptServerHandle = CreateThread(0, 0, AcceptServer, (LPVOID)&cmd, 0, 0);
 	DispatchServerHandle = CreateThread(0, 0, DispatchServer, (LPVOID)&cmd, 0, 0);
 	ConsolePipeHandle = CreateThread(0, 0, ConsolePipe, (LPVOID)&cmd, 0, 0);
@@ -631,6 +658,9 @@ int main(int argc, char** argv){
 
 	FreeLibrary(OurLib);
 	
+	WSACleanup();
+	CheckNetError();
+
 	system("pause");
 	return 0;
 }

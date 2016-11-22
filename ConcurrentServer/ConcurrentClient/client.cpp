@@ -10,10 +10,6 @@ using namespace std;
 
 int main(int argc, char** argv){
 
-	//char ipstr[50];
-	//cout << "Enter IP address of the server you want to connect" << endl;
-	//cin >> ipstr;
-
 #ifdef CLIENT_IN_CYCLE
 	for (int i = 0; i < CLIENT_CYCLE_COUNT; i++){
 #endif
@@ -22,9 +18,6 @@ int main(int argc, char** argv){
 		WSAStartup(MAKEWORD(2, 0), &WsaData);
 		CheckNetError();
 
-		SOCKET serverSock;
-		serverSock = socket(AF_INET, SOCK_STREAM, NULL);
-		CheckNetError();
 
 
 		SOCKET TempSocket = socket(AF_INET, SOCK_DGRAM, 0);
@@ -37,7 +30,7 @@ int main(int argc, char** argv){
 
 		SOCKADDR_IN All = {};
 		All.sin_family = AF_INET;
-		All.sin_port = htons(2000);
+		All.sin_port = htons(2005);
 		All.sin_addr.s_addr = INADDR_BROADCAST;
 
 		char UdpOutputBuffer[] = "Hello";
@@ -71,6 +64,9 @@ int main(int argc, char** argv){
 		char QueryOutputBuffer[64];
 		cin >> QueryOutputBuffer;
 		
+		SOCKET serverSock;
+		serverSock = socket(AF_INET, SOCK_STREAM, NULL);
+		CheckNetError();
 
 		SOCKADDR_IN serv;
 		serv.sin_family = AF_INET;
@@ -147,6 +143,8 @@ int main(int argc, char** argv){
 			free(RecBuf);
 			free(InputBuffer);
 		}
+
+		closesocket(serverSock);
 
 		WSACleanup();
 		CheckNetError();

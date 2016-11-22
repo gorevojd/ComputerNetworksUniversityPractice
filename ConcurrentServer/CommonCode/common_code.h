@@ -47,6 +47,8 @@ enum working_thread_state{
 };
 
 struct contact{
+	DWORD GlobalRunning;
+
 	waiting_thread_state WaitingState;
 	working_thread_state WorkingState;
 
