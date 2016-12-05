@@ -124,6 +124,11 @@ int main(int argc, char** argv){
 			free(OutputBuffer);
 		}
 		else{
+
+			int NumberOfTimes;
+			printf("Enter number of queries: ");
+			scanf("%d", &NumberOfTimes);
+
 			connect(serverSock, (sockaddr*)&serv, sizeof(serv));
 
 			int QuerySentBytesCount = send(serverSock, QueryOutputBuffer, strlen(QueryOutputBuffer) + 1, 0);
@@ -133,15 +138,28 @@ int main(int argc, char** argv){
 			char* RecBuf = (char*)malloc(MESSAGE_SIZE * sizeof(char));
 			int RecBytes = recv(serverSock, RecBuf, MESSAGE_SIZE, 0);
 
-			char* InputBuffer = (char*)malloc(MESSAGE_SIZE * sizeof(char));
-			int BytesReceived = recv(serverSock, InputBuffer, MESSAGE_SIZE, NULL);
+			for (int i = 0; i < NumberOfTimes; i++){
 
-			if (BytesReceived != -1){
-				cout << InputBuffer << endl;
+				int QueryBytesSent2 = send(serverSock, QueryOutputBuffer, strlen(QueryOutputBuffer) + 1, 0);
+				CheckNetError();
+
+				char* InputBuffer = (char*)malloc(MESSAGE_SIZE * sizeof(char));
+				int BytesReceived = recv(serverSock, InputBuffer, MESSAGE_SIZE, NULL);
+
+				if (BytesReceived != -1){
+					printf("%-30s - %d \n", InputBuffer, i);
+				}
+
+				free(InputBuffer);
+			}
+
+			char TerminateStr[] = "";
+			int TerminateBytesSent = send(serverSock, TerminateStr, strlen(TerminateStr) + 1, 0);
+			if (TerminateBytesSent > 0){
+				printf("Terminate message sent succesfully: %d bytes.\n", TerminateBytesSent);
 			}
 
 			free(RecBuf);
-			free(InputBuffer);
 		}
 
 		closesocket(serverSock);

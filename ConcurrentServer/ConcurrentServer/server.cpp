@@ -32,7 +32,8 @@ static list<contact> Contacts;
 
 volatile DWORD CurrentlyWorkingClients;
 volatile DWORD FinishedClients;
-volatile DWORD NotFinishedClients;
+volatile DWORD AbortedClients;
+volatile DWORD TimeoutClients;
 
 VOID CALLBACK ASWTimer(
 	LPVOID lpArgToCompletionRoutine,
@@ -267,7 +268,7 @@ DWORD WINAPI ConsolePipe(LPVOID Param){
 				if (WouldWriteStat == true){
 					char* StatStr = (char*)malloc(MESSAGE_SIZE * sizeof(char));
 					//sprintf(StatStr, "FINISHED: %u\nWORKING: %u\nABORTED: %u\n", FinishedClients, CurrentlyWorkingClients, NotFinishedClients);
-					sprintf(StatStr, "FINISHED: %u\nWORKING: %u\nABORTED: %u\n", FinishedClients, Contacts.size(), NotFinishedClients);
+					sprintf(StatStr, "FINISHED: %u\nWORKING: %u\nABORTED: %u\nTIMEOUT: %u\n", FinishedClients, Contacts.size(), AbortedClients, TimeoutClients);
 					DWORD StatStrWritten;
 					BOOL WriteStatRes = WriteFile(ServerHandle, StatStr, strlen(StatStr) + 1, &StatStrWritten, 0);
 					free(StatStr);
@@ -326,25 +327,47 @@ DWORD WINAPI TimeServer(LPVOID Param){
 	DWORD Result = 0;
 	contact* Cont = (contact*)Param;
 
+	Cont->WorkingState = WORK_TS_WORK;
 	QueueUserAPC(EchoStartAP, Cont->AccServHandle, (ULONG_PTR)Param);
+	
+	bool ContinueLoop = true;
+	while (ContinueLoop == true && (Cont->IsTimerEnded == false) && Cont->GlobalRunning){
 
-	char* AnswerStr = (char*)malloc(MESSAGE_SIZE * sizeof(char));
-	SYSTEMTIME St;
-	GetLocalTime(&St);
-	sprintf(AnswerStr,
-		"%Time: %u:%u:%u:%u. Date: %u.%u.%u\n",
-		St.wHour, St.wMinute, St.wSecond, St.wMilliseconds,
-		St.wDay, St.wMonth, St.wYear);
+		char* InputBuffer = (char*)malloc(MESSAGE_SIZE * sizeof(char));
+		int RecvBytesCount = recv(Cont->Sock, InputBuffer, MESSAGE_SIZE, 0);
+		if (RecvBytesCount != -1){
 
-	int SentBytesCount = send(Cont->Sock, AnswerStr, strlen(AnswerStr) + 1, NULL);
-	CheckNetError();
-	//printf("Sent time: %s\n", AnswerStr);
-	//printf("Bytes sent: %d\n", SentBytesCount);
+			if (strlen(InputBuffer) == 0){
+				ContinueLoop = false;
+				break;
+			}
+
+			char* AnswerStr = (char*)malloc(MESSAGE_SIZE * sizeof(char));
+			SYSTEMTIME St;
+			GetLocalTime(&St);
+			sprintf(AnswerStr,
+				"%Time: %u:%u:%u:%u. Date: %u.%u.%u",
+				St.wHour, St.wMinute, St.wSecond, St.wMilliseconds,
+				St.wDay, St.wMonth, St.wYear);
+
+			int SentBytesCount = send(Cont->Sock, AnswerStr, strlen(AnswerStr) + 1, NULL);
+			CheckNetError();
+
+			free(AnswerStr);
+		}
+
+		free(InputBuffer);
+	}
 
 	QueueUserAPC(EchoFinishAP, Cont->AccServHandle, (ULONG_PTR)Param);
-	Cont->WorkingState = WORK_TS_FINISH;
+	if (Cont->IsTimerEnded == false){
+		Cont->WorkingState = WORK_TS_FINISH;
+		CancelWaitableTimer(Cont->TimerHandle);
+	}
+	else{
+		Cont->WorkingState = WORK_TS_TIMEOUT;
+	}
 
-	free(AnswerStr);
 	printf("Time server thread exited with code: %u\n", Result);
 	return(Result);
 }
@@ -355,21 +378,40 @@ DWORD WINAPI RandServer(LPVOID Param){
 	
 	srand((unsigned)time(NULL));
 
+	Cont->WorkingState = WORK_TS_WORK;
 	QueueUserAPC(EchoStartAP, Cont->AccServHandle, (ULONG_PTR)Param);
+	
+	bool ContinueLoop = true;
+	while (ContinueLoop == true && (Cont->IsTimerEnded == false) && Cont->GlobalRunning){
+		char* InputBuffer = (char*)malloc(MESSAGE_SIZE * sizeof(char));
+		int ReceivedBytesCount = recv(Cont->Sock, InputBuffer, MESSAGE_SIZE, 0);
+		if (ReceivedBytesCount != -1){
 
-	DWORD RandomNumber = (DWORD)((rand() & 0xFF) << 8 | (rand() & 0xFF) << 16 | (rand() & 0xFF) << 24);
+			if (strlen(InputBuffer) == 0){
+				ContinueLoop = false;
+				break;
+			}
 
-	char* ResultStr = (char*)malloc(MESSAGE_SIZE * sizeof(char));
-	sprintf(ResultStr, "%u", RandomNumber);
-
-	int SentBytesCount = send(Cont->Sock, ResultStr, strlen(ResultStr) + 1, NULL);
-	CheckNetError();
+			DWORD RandomNumber = (DWORD)((rand() & 0xFF) << 8 | (rand() & 0xFF) << 16 | (rand() & 0xFF) << 24);
+			char* ResultStr = (char*)malloc(MESSAGE_SIZE * sizeof(char));
+			sprintf(ResultStr, "%u", RandomNumber);
+			int SentBytesCount = send(Cont->Sock, ResultStr, strlen(ResultStr) + 1, NULL);
+			CheckNetError();
+			free(ResultStr);
+		}
+		free(InputBuffer);
+	}
 
 	QueueUserAPC(EchoFinishAP, Cont->AccServHandle, (ULONG_PTR)Param);
-	Cont->WorkingState = WORK_TS_FINISH;
+	if (Cont->IsTimerEnded == false){
+		Cont->WorkingState = WORK_TS_FINISH;
+		CancelWaitableTimer(Cont->TimerHandle);
+	}
+	else{
+		Cont->WorkingState = WORK_TS_TIMEOUT;
+	}
 
 	printf("Time server thread exited with code: %u\n", Result);
-	free(ResultStr);
 	return(Result);
 }
 
@@ -511,8 +553,11 @@ DWORD WINAPI GarbageCleaner(LPVOID Param){
 					if (Ts == WORK_TS_FINISH){
 						InterlockedIncrement(&FinishedClients);
 					}
-					else if (Ts == WORK_TS_ABORT || Ts == WORK_TS_TIMEOUT){
-						InterlockedIncrement(&NotFinishedClients);
+					else if (Ts == WORK_TS_ABORT){
+						InterlockedIncrement(&AbortedClients);
+					}
+					else if (Ts == WORK_TS_TIMEOUT){
+						InterlockedIncrement(&TimeoutClients);
 					}
 					CloseHandle(it->ThreadHandle);
 					CloseHandle(it->TimerHandle);
@@ -532,7 +577,7 @@ DWORD WINAPI GarbageCleaner(LPVOID Param){
 	{
 		it->GlobalRunning = GlobalRunning;
 		WaitForSingleObject(it->ThreadHandle, INFINITE);
-		InterlockedIncrement(&NotFinishedClients);
+		InterlockedIncrement(&AbortedClients);
 	}
 	
 
@@ -653,7 +698,9 @@ int main(int argc, char** argv){
 	SetConsoleColor(10);
 	printf("Finished - %u\n", FinishedClients);
 	SetConsoleColor(12);
-	printf("Aborted clients - %u\n", NotFinishedClients);
+	printf("Aborted clients - %u\n", AbortedClients);
+	SetConsoleColor(9);
+	printf("Timeout clients - %u\n", TimeoutClients);
 	SetConsoleColor();
 
 	FreeLibrary(OurLib);
